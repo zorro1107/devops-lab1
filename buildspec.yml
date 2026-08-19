@@ -11,15 +11,18 @@ phases:
       - flake8 app.py
       - echo "Running unit tests..."
       - pytest test_app.py -v
-      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $ECR_URI
+      - echo "Logging in to Amazon ECR..."
+      - ECR_REGISTRY=$(echo "$ECR_URI" | cut -d/ -f1)
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
   build:
     commands:
-      - IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - docker build -t $ECR_URI:$IMAGE_TAG .
-      - docker push $ECR_URI:$IMAGE_TAG
-      - docker tag $ECR_URI:$IMAGE_TAG $ECR_URI:latest
-      - docker push $ECR_URI:latest
+      - export IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo "Building Docker image $ECR_URI:$IMAGE_TAG"
+      - docker build -t "$ECR_URI:$IMAGE_TAG" .
+      - docker push "$ECR_URI:$IMAGE_TAG"
+      - docker tag "$ECR_URI:$IMAGE_TAG" "$ECR_URI:latest"
+      - docker push "$ECR_URI:latest"
 
   post_build:
     commands:
